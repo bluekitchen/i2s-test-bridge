@@ -237,12 +237,29 @@ int main(void)
         // Receive from I2S
         if ((hsai_BlockB1.Instance->SR & SAI_xSR_FLVL) != SAI_FIFOSTATUS_EMPTY){
             if (i2s_rx_left_frame) {
-                uart_tx_value = hsai_BlockB1.Instance->DR;
+                uint32_t temp = hsai_BlockB1.Instance->DR;
+                uart_tx_value = (uint16_t) temp;
                 uart_tx_state = UART_TX_SEND_HIGH;
                 i2s_rx_left_frame = 0;
             } else {
                 (void) hsai_BlockB1.Instance->DR;
                 i2s_rx_left_frame = 1;
+            }
+        }
+
+        // Send to UART
+        if ((__HAL_UART_GET_FLAG(&huart2, UART_FLAG_TXE)) == SET){
+            switch(uart_tx_state){
+                case UART_TX_SEND_HIGH:
+                    huart2.Instance->TDR = (uint8_t) (uart_tx_value >> 8);
+                    uart_tx_state = UART_TX_SEND_LOW;
+                    break;
+                case UART_TX_SEND_LOW:
+                    huart2.Instance->TDR = (uint8_t) (uart_tx_value & 0xff);
+                    uart_tx_state = UART_TX_IDLE;
+                    break;
+                default:
+                    break;
             }
         }
 

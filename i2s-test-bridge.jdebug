@@ -32,8 +32,8 @@ void OnProjectLoad (void) {
   //
   // User settings
   //
-  File.Open ("$(ProjectDir)/cmake-build-debug/i2s-bridge.elf");
   Edit.SysVar (VAR_RTT_ENABLED, 1);
+  File.Open ("$(ProjectDir)/cmake-build-debug/i2s-bridge.elf");
 }
 
 /*********************************************************************
