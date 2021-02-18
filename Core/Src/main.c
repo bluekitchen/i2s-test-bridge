@@ -222,6 +222,10 @@ static void handle_console_input(char c){
             uart_tx_mode = COUNTER;
             print_uart_tx_mode();
             break;
+        case '0':
+            uart_tx_mode = FORWARD;
+            print_uart_tx_mode();
+            break;
         default:
             break;
     }
@@ -272,7 +276,8 @@ int main(void)
     printf("7 - UART TX Silence CVSD  8 kHz/16 bit\n");
     printf("8 - UART TX Silence mSBC 16 kHz/16 bit\n");
     printf("9 - UART TX Test Data Counter\n");
-    i2s_tx_mode = SINE_CVSD;
+    printf("0 - UART TX Forward Left I2S data\n");
+    i2s_tx_mode  = SINE_CVSD;
     uart_tx_mode = FORWARD;
     print_i2s_tx_mode();
     print_uart_tx_mode();

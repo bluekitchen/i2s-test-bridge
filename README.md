@@ -34,11 +34,18 @@ The test app will send a 16 bit 266 Hz sine wave over the I2S SDO.
 
 In main.c, via the SEGGER RTT Terminal, or via UART 2 (VCP), you can choose one of four output modes:
 
-1. Sine    CVSD  8 kHz/16 bit, 266 Hz
+1. Sine    CVSD  8 kHz/16 bit, 266 Hz (default)
 2. Sine    mSBC 16 kHz/16 bit, 266 Hz
 3. Silence CVSD  8 kHz/16 bit
 4. Silence mSBC 16 kHz/16 bit
 
 ## RX Data
 
-The left channel of the I2S data is forwarded over UART in big-endian format.
+Similarly, you can choose one of the following modes for the data sent over UART in big-endian format.
+
+5. Sine    CVSD  8 kHz/16 bit, 266 Hz
+6. Sine    mSBC 16 kHz/16 bit, 266 Hz
+7. Silence CVSD  8 kHz/16 bit
+8. Silence mSBC 16 kHz/16 bit
+9. Test Data Counter
+0. Forward Left I2S Channel data (default)
