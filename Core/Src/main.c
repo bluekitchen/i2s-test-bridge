@@ -142,6 +142,9 @@ static const uint8_t sco_msbc_silence_data[] = {
 
 static void print_i2s_tx_mode(void){
     switch (i2s_tx_mode) {
+        case FORWARD:
+            printf("I2S TX Forward UART data\n");
+            break;
         case SINE_CVSD:
             printf("I2S TX Sine CVSD\n");
             break;
@@ -187,43 +190,47 @@ static void print_uart_tx_mode(void){
 static void handle_console_input(char c){
     switch (c) {
         case '1':
-            i2s_tx_mode = SINE_CVSD;
+            i2s_tx_mode = FORWARD;
             print_i2s_tx_mode();
             break;
         case '2':
-            i2s_tx_mode = SINE_mSBC;
+            i2s_tx_mode = SINE_CVSD;
             print_i2s_tx_mode();
             break;
         case '3':
-            i2s_tx_mode = SILENCE_CVSD;
+            i2s_tx_mode = SINE_mSBC;
             print_i2s_tx_mode();
             break;
         case '4':
-            i2s_tx_mode = SILENCE_mSBC;
+            i2s_tx_mode = SILENCE_CVSD;
             print_i2s_tx_mode();
             break;
         case '5':
+            i2s_tx_mode = SILENCE_mSBC;
+            print_i2s_tx_mode();
+            break;
+        case 'a':
+            uart_tx_mode = FORWARD;
+            print_uart_tx_mode();
+            break;
+        case 'b':
             uart_tx_mode = SINE_CVSD;
             print_uart_tx_mode();
             break;
-        case '6':
+        case 'c':
             uart_tx_mode = SINE_mSBC;
             print_uart_tx_mode();
             break;
-        case '7':
+        case 'd':
             uart_tx_mode = SILENCE_CVSD;
             print_uart_tx_mode();
             break;
-        case '8':
+        case 'e':
             uart_tx_mode = SILENCE_mSBC;
             print_uart_tx_mode();
             break;
-        case '9':
+        case 'f':
             uart_tx_mode = COUNTER;
-            print_uart_tx_mode();
-            break;
-        case '0':
-            uart_tx_mode = FORWARD;
             print_uart_tx_mode();
             break;
         default:
@@ -266,19 +273,24 @@ int main(void)
     MX_SAI1_Init();
     MX_USART2_UART_Init();
     /* USER CODE BEGIN 2 */
-    printf("I2S Test Bridge\n");
-    printf("1 - I2S  TX Sine    CVSD  8 kHz/16 bit, 266 Hz\n");
-    printf("2 - I2S  TX Sine    mSBC 16 kHz/16 bit, 266 Hz\n");
-    printf("3 - I2S  TX Silence CVSD  8 kHz/16 bit\n");
-    printf("4 - I2S  TX Silence mSBC 16 kHz/16 bit\n");
-    printf("5 - UART TX Sine    CVSD  8 kHz/16 bit, 266 Hz\n");
-    printf("6 - UART TX Sine    mSBC 16 kHz/16 bit, 266 Hz\n");
-    printf("7 - UART TX Silence CVSD  8 kHz/16 bit\n");
-    printf("8 - UART TX Silence mSBC 16 kHz/16 bit\n");
-    printf("9 - UART TX Test Data Counter\n");
-    printf("0 - UART TX Forward Left I2S data\n");
+    printf("I2S Test Bridge Console\n");
+    printf("1 - I2S  TX Forward UART data\n");
+    printf("2 - I2S  TX Sine    CVSD  8 kHz/16 bit, 266 Hz (default)\n");
+    printf("3 - I2S  TX Sine    mSBC 16 kHz/16 bit, 266 Hz\n");
+    printf("4 - I2S  TX Silence CVSD  8 kHz/16 bit\n");
+    printf("5 - I2S  TX Silence mSBC 16 kHz/16 bit\n");
+
+    printf("a - UART TX Forward Left I2S Channel data (default)\n");
+    printf("b - UART TX Sine    CVSD  8 kHz/16 bit, 266 Hz\n");
+    printf("c - UART TX Sine    mSBC 16 kHz/16 bit, 266 Hz\n");
+    printf("d - UART TX Silence CVSD  8 kHz/16 bit\n");
+    printf("e - UART TX Silence mSBC 16 kHz/16 bit\n");
+    printf("f - UART TX Test Data Counter\n");
+
+    // Default Config
     i2s_tx_mode  = SINE_CVSD;
     uart_tx_mode = FORWARD;
+
     print_i2s_tx_mode();
     print_uart_tx_mode();
     __HAL_SAI_ENABLE( &hsai_BlockA1);
@@ -297,12 +309,6 @@ int main(void)
         if (rtt_input > 0) {
             int rtt_key = SEGGER_RTT_GetKey();
             handle_console_input( (char) rtt_key);
-        }
-
-        // UART 'console'
-        if ((__HAL_UART_GET_FLAG(&huart2, UART_FLAG_RXNE)) == SET) {
-            uint8_t uart_key = huart2.Instance->RDR & 0xff;
-            handle_console_input( (char) uart_key);
         }
 
         // Receive from I2S
