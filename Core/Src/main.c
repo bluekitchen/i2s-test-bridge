@@ -62,6 +62,36 @@ static void MX_USART2_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+// minimal ringbuffer with uin16_t values
+
+#define RINGBUFFER_ELEMENTS 128
+
+static uint16_t ringbuffer[RINGBUFFER_ELEMENTS];
+static uint16_t ringbuffer_head;
+static uint16_t ringbuffer_tail;
+
+static void ringbuffer_init(void){
+    ringbuffer_head = 0;
+    ringbuffer_tail = 0;
+}
+static int ringbuffer_empty(void){
+    return ringbuffer_head == ringbuffer_tail;
+}
+static int ringbuffer_full(void){
+    return ((ringbuffer_head + 1) & (RINGBUFFER_ELEMENTS - 1)) == ringbuffer_tail;
+}
+static void ringbuffer_put(uint16_t value){
+    ringbuffer[ringbuffer_head] = value;
+    ringbuffer_head = (ringbuffer_head + 1) & (RINGBUFFER_ELEMENTS - 1);
+}
+static uint16_t ringbuffer_get(void){
+    uint16_t value = ringbuffer[ringbuffer_tail];
+    ringbuffer_tail = (ringbuffer_tail + 1) & (RINGBUFFER_ELEMENTS - 1);
+    return value;
+}
+
+//
+
 typedef  enum {
     IDLE,
     SILENCE_CVSD,
@@ -82,6 +112,11 @@ static enum {
 } uart_tx_state = UART_TX_IDLE;
 
 static uint16_t uart_tx_value;
+
+static enum {
+    UART_RX_W4_HIGH,
+    UART_RX_W4_LOW
+} uart_rx_state = UART_RX_W4_HIGH;
 
 // input signal: pre-computed sine wave, 266 Hz at 16000 Hz
 
@@ -189,6 +224,7 @@ static void print_uart_tx_mode(void){
 
 static void handle_console_input(char c){
     switch (c) {
+        // I2S TX
         case '1':
             i2s_tx_mode = FORWARD;
             print_i2s_tx_mode();
@@ -209,6 +245,7 @@ static void handle_console_input(char c){
             i2s_tx_mode = SILENCE_mSBC;
             print_i2s_tx_mode();
             break;
+        // UART TX
         case 'a':
             uart_tx_mode = FORWARD;
             print_uart_tx_mode();
@@ -288,7 +325,7 @@ int main(void)
     printf("f - UART TX Test Data Counter\n");
 
     // Default Config
-    i2s_tx_mode  = SINE_CVSD;
+    i2s_tx_mode  = FORWARD;
     uart_tx_mode = FORWARD;
 
     print_i2s_tx_mode();
@@ -378,6 +415,28 @@ int main(void)
             }
         }
 
+        // Receive from UART
+        if ((__HAL_UART_GET_FLAG(&huart2, UART_FLAG_RXNE)) == SET){
+            uint16_t uart_rx_value = 0;
+            uart_rx_value = (uart_rx_value << 8) | (huart2.Instance->RDR & 0xff);
+            switch (uart_rx_state){
+                case UART_RX_W4_HIGH:
+                    uart_rx_state = UART_RX_W4_LOW;
+                    break;
+                case UART_RX_W4_LOW:
+                    if (ringbuffer_full()){
+                        printf("TX Overflow!\n");
+                    } else {
+                        ringbuffer_put(uart_rx_value);
+                        uart_rx_value = 0;
+                    }
+                    uart_rx_state = UART_RX_W4_HIGH;
+                    break;
+                default:
+                    break;
+            }
+        }
+
         // I2S TX
         if ((hsai_BlockA1.Instance->SR & SAI_xSR_FLVL) != SAI_FIFOSTATUS_FULL){
             uint16_t i2s_tx_value = 0;
@@ -407,6 +466,12 @@ int main(void)
                         if (i2s_tx_phase >= (sizeof(sco_msbc_silence_data) / sizeof(uint8_t))){
                             i2s_tx_phase = 0;
                         }
+                        break;
+                    case FORWARD:
+                        if (!ringbuffer_empty()){
+                            i2s_tx_value = ringbuffer_get();
+                        }
+                        i2s_tx_left_frame = 0;
                         break;
                     default:
                         break;
