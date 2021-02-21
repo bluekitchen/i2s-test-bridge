@@ -5,7 +5,7 @@ Bluetooth Controllers historically provide SCO data via PCM/I2S interview. While
 This project aims to provide a mimimal I2S Interface over a regular UART connection using off-the-shelve hardware,
 like the STM32L432KC Nucleo dev kit.
 
-Hardware configuration for Nucleo STM32F091RC board:
+## Hardware configuration for Nucleo STM32F091RC board:
 
   Signal  | GPIO | Header | Pin | Arduino | Logic
   --------|------|--------|-----|---------|------
@@ -14,14 +14,18 @@ Hardware configuration for Nucleo STM32F091RC board:
   SAI-FS  | PA9  | CN3    |  1  |  D1     | Brown
   SAI_SDO | PA10 | CN3    |  2  |  D0     | Red 
   SAI-SDI | PB5  | CN3    | 14  | D11     | Orange
+  VCP_TX  | PA2  | CN4    |  5  |  A7     | Yello
+  VCP_RX  | PA15 |        |     |         | Green
 
-I2S Configuration:
+PA15 (VCP_RX) is only available at SB3 on the bottom of the Nucleo board
+
+## I2S Configuration:
 - Slave
 - Philips I2S
 - 8 khz
 - 16 bit
 
-UART Configuration:
+## UART Configuration:
 - 230400 baud (sufficient for 1 Channel, 8 kHz, 16 bit = 128 kbps)
 - 8N1 (8 Bit data, 1 Stop Bit, No Parity)
 
