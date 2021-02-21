@@ -111,8 +111,6 @@ static enum {
     UART_TX_SEND_LOW,
 } uart_tx_state = UART_TX_IDLE;
 
-static uint16_t uart_tx_value;
-
 static enum {
     UART_RX_W4_HIGH,
     UART_RX_W4_LOW
@@ -178,19 +176,19 @@ static const uint8_t sco_msbc_silence_data[] = {
 static void print_i2s_tx_mode(void){
     switch (i2s_tx_mode) {
         case FORWARD:
-            printf("I2S TX Forward UART data\n");
+            printf("I2S TX:  Forward data from UART\n");
             break;
         case SINE_CVSD:
-            printf("I2S TX Sine CVSD\n");
+            printf("I2S TX:  Sine CVSD\n");
             break;
         case SINE_mSBC:
-            printf("I2S TX Sine mSBC\n");
+            printf("I2S TX:  Sine mSBC\n");
             break;
         case SILENCE_CVSD:
-            printf("I2S TX Silence CVSD\n");
+            printf("I2S TX:  Silence CVSD\n");
             break;
         case SILENCE_mSBC:
-            printf("I2S TX Silence mSBC\n");
+            printf("I2S TX:  Silence mSBC\n");
             break;
         default:
             break;
@@ -200,22 +198,22 @@ static void print_i2s_tx_mode(void){
 static void print_uart_tx_mode(void){
     switch (uart_tx_mode) {
         case SINE_CVSD:
-            printf("UART TX Sine CVSD\n");
+            printf("UART TX: Sine CVSD\n");
             break;
         case SINE_mSBC:
-            printf("UART TX Sine mSBC\n");
+            printf("UART TX: Sine mSBC\n");
             break;
         case SILENCE_CVSD:
-            printf("UART TX Silence CVSD\n");
+            printf("UART TX: Silence CVSD\n");
             break;
         case SILENCE_mSBC:
-            printf("UART TX Silence mSBC\n");
+            printf("UART TX: Silence mSBC\n");
             break;
         case FORWARD:
-            printf("UART TX Forward - I2S Data\n");
+            printf("UART TX: Forward data from I2S\n");
             break;
         case COUNTER:
-            printf("UART TX Test Data Counter\n");
+            printf("UART TX: Test Data Counter\n");
             break;
         default:
             break;
@@ -328,6 +326,7 @@ int main(void)
     i2s_tx_mode  = FORWARD;
     uart_tx_mode = FORWARD;
 
+    printf("---\n");
     print_i2s_tx_mode();
     print_uart_tx_mode();
     __HAL_SAI_ENABLE( &hsai_BlockA1);
@@ -339,6 +338,8 @@ int main(void)
     /* USER CODE BEGIN WHILE */
     uint8_t i2s_rx_left_frame = 1;
     uint8_t i2s_tx_left_frame = 1;
+    uint16_t uart_tx_value;
+    uint16_t uart_rx_value;
     while (1) {
 
         // RTT console
@@ -417,18 +418,17 @@ int main(void)
 
         // Receive from UART
         if ((__HAL_UART_GET_FLAG(&huart2, UART_FLAG_RXNE)) == SET){
-            uint16_t uart_rx_value = 0;
-            uart_rx_value = (uart_rx_value << 8) | (huart2.Instance->RDR & 0xff);
             switch (uart_rx_state){
                 case UART_RX_W4_HIGH:
+                    uart_rx_value = (huart2.Instance->RDR & 0xff) << 8;
                     uart_rx_state = UART_RX_W4_LOW;
                     break;
                 case UART_RX_W4_LOW:
+                    uart_rx_value |= (huart2.Instance->RDR & 0xff);
                     if (ringbuffer_full()){
                         printf("TX Overflow!\n");
                     } else {
                         ringbuffer_put(uart_rx_value);
-                        uart_rx_value = 0;
                     }
                     uart_rx_state = UART_RX_W4_HIGH;
                     break;
