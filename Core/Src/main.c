@@ -348,6 +348,8 @@ int main(void)
     uint16_t uart_tx_value;
     uint16_t uart_rx_value;
     int      forwarding_active = 0;
+    uint32_t last_i2s_rx_ms;
+
     while (1) {
 
         // RTT console
@@ -359,6 +361,7 @@ int main(void)
 
         // Receive from I2S
         if ((hsai_BlockB1.Instance->SR & SAI_xSR_FLVL) != SAI_FIFOSTATUS_EMPTY){
+            last_i2s_rx_ms = HAL_GetTick();
             if (i2s_rx_left_frame) {
                 uint32_t temp = hsai_BlockB1.Instance->DR;
                 switch (uart_tx_mode){
@@ -486,7 +489,7 @@ int main(void)
                         if (forwarding_active){
                             if (ringbuffer_empty()){
                                 forwarding_active = 0;
-                                printf("UART -> I2S Forwarding stopped\n");
+                                printf("UART -> I2S Forwarding stopped (underrun)\n");
                             } else {
                                 i2s_tx_value = ringbuffer_get();
                             }
@@ -501,6 +504,19 @@ int main(void)
                 i2s_tx_left_frame = 1;
             }
             hsai_BlockA1.Instance->DR = i2s_tx_value;
+        }
+
+        // reset state if I2S Stopped
+        if (forwarding_active){
+            uint32_t delta_ms = (uint32_t)(HAL_GetTick() - last_i2s_rx_ms);
+            if (delta_ms > 100){
+                i2s_tx_left_frame = 1;
+                i2s_rx_left_frame = 1;
+                ringbuffer_init();
+                forwarding_active = 0;
+                uart_rx_state = UART_RX_W4_HIGH;
+                printf("UART -> I2S Forwarding stopped (I2S stopped)\n");
+            }
         }
 
         /* USER CODE END WHILE */

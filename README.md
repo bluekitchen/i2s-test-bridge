@@ -32,6 +32,7 @@ PA15 (VCP_RX) is only available at SB3 on the bottom of the Nucleo board
 ## Concept
 The bridge will buffer a fixed amount of data from UART before it starts sending data over I2S. 
 This allows the host to send one block for each received block without additional buffering.
+If I2S clock stops for 100 ms, the state is reset.
 
 ## Usage
 
