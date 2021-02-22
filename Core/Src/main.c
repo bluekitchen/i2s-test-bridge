@@ -62,9 +62,13 @@ static void MX_USART2_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+#define I2S_FORWARDING_THRESHOLD_SAMPLES 60
+
 // minimal ringbuffer with uin16_t values
 
 #define RINGBUFFER_ELEMENTS 128
+
+#define RINGBUFFER_MASK  (RINGBUFFER_ELEMENTS-1)
 
 static uint16_t ringbuffer[RINGBUFFER_ELEMENTS];
 static uint16_t ringbuffer_head;
@@ -77,16 +81,19 @@ static void ringbuffer_init(void){
 static int ringbuffer_empty(void){
     return ringbuffer_head == ringbuffer_tail;
 }
+static int rinbuffer_avail(void){
+    return (uint16_t) (ringbuffer_head - ringbuffer_tail);
+}
 static int ringbuffer_full(void){
-    return ((ringbuffer_head + 1) & (RINGBUFFER_ELEMENTS - 1)) == ringbuffer_tail;
+    return (ringbuffer_head - ringbuffer_tail) == RINGBUFFER_MASK;
 }
 static void ringbuffer_put(uint16_t value){
-    ringbuffer[ringbuffer_head] = value;
-    ringbuffer_head = (ringbuffer_head + 1) & (RINGBUFFER_ELEMENTS - 1);
+    ringbuffer[ringbuffer_head& RINGBUFFER_MASK] = value;
+    ringbuffer_head++;
 }
 static uint16_t ringbuffer_get(void){
-    uint16_t value = ringbuffer[ringbuffer_tail];
-    ringbuffer_tail = (ringbuffer_tail + 1) & (RINGBUFFER_ELEMENTS - 1);
+    uint16_t value = ringbuffer[ringbuffer_tail & RINGBUFFER_MASK];
+    ringbuffer_tail++;
     return value;
 }
 
@@ -340,6 +347,7 @@ int main(void)
     uint8_t i2s_tx_left_frame = 1;
     uint16_t uart_tx_value;
     uint16_t uart_rx_value;
+    int      forwarding_active = 0;
     while (1) {
 
         // RTT console
@@ -468,8 +476,20 @@ int main(void)
                         }
                         break;
                     case FORWARD:
-                        if (!ringbuffer_empty()){
-                            i2s_tx_value = ringbuffer_get();
+                        // hysteresis
+                        if (forwarding_active == 0){
+                            if (rinbuffer_avail() >= I2S_FORWARDING_THRESHOLD_SAMPLES){
+                                printf("UART -> I2S Forwarding started\n");
+                                forwarding_active = 1;
+                            }
+                        }
+                        if (forwarding_active){
+                            if (ringbuffer_empty()){
+                                forwarding_active = 0;
+                                printf("UART -> I2S Forwarding stopped\n");
+                            } else {
+                                i2s_tx_value = ringbuffer_get();
+                            }
                         }
                         i2s_tx_left_frame = 0;
                         break;

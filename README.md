@@ -29,6 +29,10 @@ PA15 (VCP_RX) is only available at SB3 on the bottom of the Nucleo board
 - 230400 baud (sufficient for 1 Channel, 8 kHz, 16 bit = 128 kbps)
 - 8N1 (8 Bit data, 1 Stop Bit, No Parity)
 
+## Concept
+The bridge will buffer a fixed amount of data from UART before it starts sending data over I2S. 
+This allows the host to send one block for each received block without additional buffering.
+
 ## Usage
 
 Compile the project using Cmake and flash onto the L432. As I2S is configured as slave, it will only start sending data once the clock starts.
