@@ -101,12 +101,13 @@ static uint16_t ringbuffer_get(void){
 
 typedef  enum {
     IDLE,
-    SILENCE_CVSD,
-    SILENCE_mSBC,
-    SINE_CVSD,
-    SINE_mSBC,
+    COUNTER,
     FORWARD,
-    COUNTER
+    SINE_PCM_8K,
+    SINE_PCM_16K,
+    SINE_mSBC,
+    SILENCE_PCM,
+    SILENCE_mSBC,
 } test_mode_t;
 
 static test_mode_t i2s_tx_mode;
@@ -185,14 +186,17 @@ static void print_i2s_tx_mode(void){
         case FORWARD:
             printf("I2S TX:  Forward data from UART\n");
             break;
-        case SINE_CVSD:
-            printf("I2S TX:  Sine CVSD\n");
+        case SINE_PCM_8K:
+            printf("I2S TX:  Sine 266 Hz, 8 kHz, PCM\n");
+            break;
+        case SINE_PCM_16K:
+            printf("I2S TX:  Sine 266 Hz, 16 kHz, PCM\n");
             break;
         case SINE_mSBC:
             printf("I2S TX:  Sine mSBC\n");
             break;
-        case SILENCE_CVSD:
-            printf("I2S TX:  Silence CVSD\n");
+        case SILENCE_PCM:
+            printf("I2S TX:  Silence PCM\n");
             break;
         case SILENCE_mSBC:
             printf("I2S TX:  Silence mSBC\n");
@@ -204,75 +208,58 @@ static void print_i2s_tx_mode(void){
 
 static void print_uart_tx_mode(void){
     switch (uart_tx_mode) {
-        case SINE_CVSD:
-            printf("UART TX: Sine CVSD\n");
-            break;
-        case SINE_mSBC:
-            printf("UART TX: Sine mSBC\n");
-            break;
-        case SILENCE_CVSD:
-            printf("UART TX: Silence CVSD\n");
-            break;
-        case SILENCE_mSBC:
-            printf("UART TX: Silence mSBC\n");
+        case COUNTER:
+            printf("UART TX: Test Data Counter\n");
             break;
         case FORWARD:
             printf("UART TX: Forward data from I2S\n");
             break;
-        case COUNTER:
-            printf("UART TX: Test Data Counter\n");
+        case SINE_PCM_8K:
+            printf("UART TX: Sine 266 Hz, 8 kHz, PCM\n");
+            break;
+        case SINE_PCM_16K:
+            printf("UART TX: Sine 266 Hz, 16 kHz, PCM\n");
+            break;
+        case SINE_mSBC:
+            printf("UART TX: Sine mSBC\n");
+            break;
+        case SILENCE_PCM:
+            printf("UART TX: Silence CVSD\n");
+            break;
+        case SILENCE_mSBC:
+            printf("UART TX: Silence mSBC\n");
             break;
         default:
             break;
     }
 }
 
+static void set_uart_tx_mode(test_mode_t mode){
+    uart_tx_mode = mode;
+    print_i2s_tx_mode();
+}
+
 static void handle_console_input(char c){
     switch (c) {
         // I2S TX
         case '1':
-            i2s_tx_mode = FORWARD;
-            print_i2s_tx_mode();
-            break;
         case '2':
-            i2s_tx_mode = SINE_CVSD;
-            print_i2s_tx_mode();
-            break;
         case '3':
-            i2s_tx_mode = SINE_mSBC;
-            print_i2s_tx_mode();
-            break;
         case '4':
-            i2s_tx_mode = SILENCE_CVSD;
-            print_i2s_tx_mode();
-            break;
         case '5':
-            i2s_tx_mode = SILENCE_mSBC;
+        case '6':
+            i2s_tx_mode = (test_mode_t )(c - '1' + (int)FORWARD);
             print_i2s_tx_mode();
             break;
         // UART TX
         case 'a':
-            uart_tx_mode = FORWARD;
-            print_uart_tx_mode();
-            break;
         case 'b':
-            uart_tx_mode = SINE_CVSD;
-            print_uart_tx_mode();
-            break;
         case 'c':
-            uart_tx_mode = SINE_mSBC;
-            print_uart_tx_mode();
-            break;
         case 'd':
-            uart_tx_mode = SILENCE_CVSD;
-            print_uart_tx_mode();
-            break;
         case 'e':
-            uart_tx_mode = SILENCE_mSBC;
-            print_uart_tx_mode();
-            break;
         case 'f':
-            uart_tx_mode = COUNTER;
+        case 'g':
+            uart_tx_mode = (test_mode_t )(c - 'a' + (int)FORWARD);
             print_uart_tx_mode();
             break;
         default:
@@ -317,17 +304,19 @@ int main(void)
     /* USER CODE BEGIN 2 */
     printf("I2S Test Bridge Console\n");
     printf("1 - I2S  TX Forward UART data\n");
-    printf("2 - I2S  TX Sine    CVSD  8 kHz/16 bit, 266 Hz (default)\n");
-    printf("3 - I2S  TX Sine    mSBC 16 kHz/16 bit, 266 Hz\n");
-    printf("4 - I2S  TX Silence CVSD  8 kHz/16 bit\n");
-    printf("5 - I2S  TX Silence mSBC 16 kHz/16 bit\n");
+    printf("2 - I2S  TX Sine    PCM   8 kHz/16 bit, 266 Hz\n");
+    printf("3 - I2S  TX Sine    PCM  16 kHz/16 bit, 266 Hz\n");
+    printf("4 - I2S  TX Sine    mSBC 16 kHz/16 bit, 266 Hz\n");
+    printf("5 - I2S  TX Silence PCM         16 bit\n");
+    printf("6 - I2S  TX Silence mSBC 16 kHz/16 bit\n");
 
-    printf("a - UART TX Forward Left I2S Channel data (default)\n");
-    printf("b - UART TX Sine    CVSD  8 kHz/16 bit, 266 Hz\n");
-    printf("c - UART TX Sine    mSBC 16 kHz/16 bit, 266 Hz\n");
-    printf("d - UART TX Silence CVSD  8 kHz/16 bit\n");
-    printf("e - UART TX Silence mSBC 16 kHz/16 bit\n");
-    printf("f - UART TX Test Data Counter\n");
+    printf("a - UART TX Forward Left I2S Channel data\n");
+    printf("b - UART TX Sine    PCM   8 kHz/16 bit, 266 Hz\n");
+    printf("c - UART TX Sine    PCM  16 kHz/16 bit, 266 Hz\n");
+    printf("d - UART TX Sine    mSBC 16 kHz/16 bit, 266 Hz\n");
+    printf("e - UART TX Silence PCM         16 bit\n");
+    printf("f - UART TX Silence mSBC 16 kHz/16 bit\n");
+    printf("g - UART TX Test Data Counter\n");
 
     // Default Config
     i2s_tx_mode  = FORWARD;
@@ -375,7 +364,7 @@ int main(void)
                             uart_tx_phase = 0;
                         }
                         break;
-                    case SINE_CVSD:
+                    case SINE_PCM_8K:
                         // 8 kHz, 16 bit
                         uart_tx_value = (uint16_t) sine_int16_at_16000hz[uart_tx_phase];
                         uart_tx_phase += 2;
@@ -383,7 +372,15 @@ int main(void)
                             uart_tx_phase = 0;
                         }
                         break;
-                    case SILENCE_CVSD:
+                    case SINE_PCM_16K:
+                        // 8 kHz, 16 bit
+                        uart_tx_value = (uint16_t) sine_int16_at_16000hz[uart_tx_phase];
+                        uart_tx_phase += 1;
+                        if (uart_tx_phase >= (sizeof(sine_int16_at_16000hz) / sizeof(int16_t))){
+                            uart_tx_phase = 0;
+                        }
+                        break;
+                    case SILENCE_PCM:
                         uart_tx_value = 0;
                         break;
                     case SINE_mSBC:
@@ -453,7 +450,7 @@ int main(void)
             uint16_t i2s_tx_value = 0;
             if (i2s_tx_left_frame) {
                 switch (i2s_tx_mode){
-                    case SINE_CVSD:
+                    case SINE_PCM_8K:
                         // 8 kHz, 16 bit
                         i2s_tx_value = (uint16_t) sine_int16_at_16000hz[i2s_tx_phase];
                         i2s_tx_phase += 2;
@@ -461,7 +458,15 @@ int main(void)
                             i2s_tx_phase = 0;
                         }
                         break;
-                    case SILENCE_CVSD:
+                    case SINE_PCM_16K:
+                        // 8 kHz, 16 bit
+                        i2s_tx_value = (uint16_t) sine_int16_at_16000hz[i2s_tx_phase];
+                        i2s_tx_phase += 1;
+                        if (i2s_tx_phase >= (sizeof(sine_int16_at_16000hz) / sizeof(int16_t))){
+                            i2s_tx_phase = 0;
+                        }
+                        break;
+                    case SILENCE_PCM:
                         i2s_tx_value = 0;
                         break;
                     case SINE_mSBC:
