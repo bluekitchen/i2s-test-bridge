@@ -112,6 +112,7 @@ typedef  enum {
 
 static test_mode_t i2s_tx_mode;
 static test_mode_t uart_tx_mode;
+static uint8_t i2s_tx_channels = 3;
 
 static enum {
     UART_TX_IDLE,
@@ -204,6 +205,19 @@ static void print_i2s_tx_mode(void){
         default:
             break;
     }
+    switch (i2s_tx_channels){
+        case 1:
+            printf("I2S TX:  TX on Channel 1 / left\n");
+            break;
+        case 2:
+            printf("I2S TX: TX on Channel 2 / right\n");
+            break;
+        case 3:
+            printf("I2S TX: TX on both channels\n");
+            break;
+        default:
+            break;
+    }
 }
 
 static void print_uart_tx_mode(void){
@@ -262,6 +276,18 @@ static void handle_console_input(char c){
             uart_tx_mode = (test_mode_t )(c - 'a' + (int)FORWARD);
             print_uart_tx_mode();
             break;
+        case '[':
+            i2s_tx_channels = 1;
+            print_uart_tx_mode();
+            break;
+        case ']':
+            i2s_tx_channels = 2;
+            print_uart_tx_mode();
+            break;
+        case '-':
+            i2s_tx_channels = 3;
+            print_uart_tx_mode();
+            break;
         default:
             break;
     }
@@ -309,6 +335,10 @@ int main(void)
     printf("4 - I2S  TX Sine    mSBC 16 kHz/16 bit, 266 Hz\n");
     printf("5 - I2S  TX Silence PCM         16 bit\n");
     printf("6 - I2S  TX Silence mSBC 16 kHz/16 bit\n");
+
+    printf("[ = I2S  TX on Channel 1 / Left \n");
+    printf("] = I2S  TX on Channel 2 / Right \n");
+    printf("- = I2S  TX on both channels\n");
 
     printf("a - UART TX Forward Left I2S Channel data\n");
     printf("b - UART TX Sine    PCM   8 kHz/16 bit, 266 Hz\n");
