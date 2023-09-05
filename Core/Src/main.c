@@ -364,6 +364,7 @@ int main(void)
     /* USER CODE BEGIN WHILE */
     uint8_t i2s_rx_left_frame = 1;
     uint8_t i2s_tx_left_frame = 1;
+    uint16_t i2s_tx_value = 0;
     uint16_t uart_tx_value;
     uint16_t uart_rx_value;
     int      forwarding_active = 0;
@@ -477,7 +478,6 @@ int main(void)
 
         // I2S TX
         if ((hsai_BlockA1.Instance->SR & SAI_xSR_FLVL) != SAI_FIFOSTATUS_FULL){
-            uint16_t i2s_tx_value = 0;
             if (i2s_tx_left_frame) {
                 switch (i2s_tx_mode){
                     case SINE_PCM_8K:
@@ -529,16 +529,13 @@ int main(void)
                                 i2s_tx_value = ringbuffer_get();
                             }
                         }
-                        i2s_tx_left_frame = 0;
                         break;
                     default:
                         break;
                 }
-                i2s_tx_left_frame = 0;
-            } else {
-                i2s_tx_left_frame = 1;
             }
             hsai_BlockA1.Instance->DR = i2s_tx_value;
+            i2s_tx_left_frame = 1 - i2s_tx_left_frame;
         }
 
         // reset state if I2S Stopped
