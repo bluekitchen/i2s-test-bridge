@@ -112,7 +112,14 @@ typedef  enum {
 
 static test_mode_t i2s_tx_mode;
 static test_mode_t uart_tx_mode;
-static uint8_t i2s_tx_channels = 3;
+
+typedef enum {
+    I2S_LEFT_CHANNEL,
+    I2S_RIGHT_CHANNEL,
+    I2S_STEREO,
+} i2s_channels_t;
+
+static i2s_channels_t i2s_tx_channels = I2S_STEREO;
 
 static enum {
     UART_TX_IDLE,
@@ -206,13 +213,13 @@ static void print_i2s_tx_mode(void){
             break;
     }
     switch (i2s_tx_channels){
-        case 1:
+        case I2S_LEFT_CHANNEL:
             printf("I2S TX:  TX on Channel 1 / left\n");
             break;
-        case 2:
+        case I2S_RIGHT_CHANNEL:
             printf("I2S TX: TX on Channel 2 / right\n");
             break;
-        case 3:
+        case I2S_STEREO:
             printf("I2S TX: TX on both channels\n");
             break;
         default:
@@ -478,6 +485,7 @@ int main(void)
 
         // I2S TX
         if ((hsai_BlockA1.Instance->SR & SAI_xSR_FLVL) != SAI_FIFOSTATUS_FULL){
+            // update i2x tx value on left frame
             if (i2s_tx_left_frame) {
                 switch (i2s_tx_mode){
                     case SINE_PCM_8K:
@@ -534,7 +542,28 @@ int main(void)
                         break;
                 }
             }
-            hsai_BlockA1.Instance->DR = i2s_tx_value;
+
+            // send this frame based on tx channel selection
+            int send_this_frame = 0;
+            switch (i2s_tx_channels){
+                case I2S_LEFT_CHANNEL:
+                    send_this_frame = i2s_tx_left_frame == 1;
+                    break;
+                case I2S_RIGHT_CHANNEL:
+                    send_this_frame = i2s_tx_left_frame == 0;
+                    break;
+                case I2S_STEREO:
+                    send_this_frame = 1;
+                    break;
+                default:
+                    break;
+            }
+            if (send_this_frame){
+                hsai_BlockA1.Instance->DR = i2s_tx_value;
+            } else {
+                hsai_BlockA1.Instance->DR = 0;
+            }
+
             i2s_tx_left_frame = 1 - i2s_tx_left_frame;
         }
 
