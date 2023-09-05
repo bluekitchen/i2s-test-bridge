@@ -212,15 +212,18 @@ static void print_i2s_tx_mode(void){
         default:
             break;
     }
+}
+
+static void print_i2s_tx_channels(void){
     switch (i2s_tx_channels){
         case I2S_LEFT_CHANNEL:
             printf("I2S TX:  TX on Channel 1 / left\n");
             break;
         case I2S_RIGHT_CHANNEL:
-            printf("I2S TX: TX on Channel 2 / right\n");
+            printf("I2S TX:  TX on Channel 2 / right\n");
             break;
         case I2S_STEREO:
-            printf("I2S TX: TX on both channels\n");
+            printf("I2S TX:  TX on both channels\n");
             break;
         default:
             break;
@@ -284,16 +287,16 @@ static void handle_console_input(char c){
             print_uart_tx_mode();
             break;
         case '[':
-            i2s_tx_channels = 1;
-            print_uart_tx_mode();
+            i2s_tx_channels = I2S_LEFT_CHANNEL;
+            print_i2s_tx_channels();
             break;
         case ']':
-            i2s_tx_channels = 2;
-            print_uart_tx_mode();
+            i2s_tx_channels = I2S_RIGHT_CHANNEL;
+            print_i2s_tx_channels();
             break;
         case '-':
-            i2s_tx_channels = 3;
-            print_uart_tx_mode();
+            i2s_tx_channels = I2S_STEREO;
+            print_i2s_tx_channels();
             break;
         default:
             break;
@@ -335,7 +338,8 @@ int main(void)
     MX_SAI1_Init();
     MX_USART2_UART_Init();
     /* USER CODE BEGIN 2 */
-    printf("I2S Test Bridge Console\n");
+    printf("\n\n");
+    printf("=== I2S Test Bridge Console ===\n");
     printf("1 - I2S  TX Forward UART data\n");
     printf("2 - I2S  TX Sine    PCM   8 kHz/16 bit, 266 Hz\n");
     printf("3 - I2S  TX Sine    PCM  16 kHz/16 bit, 266 Hz\n");
@@ -361,6 +365,7 @@ int main(void)
 
     printf("---\n");
     print_i2s_tx_mode();
+    print_i2s_tx_channels();
     print_uart_tx_mode();
     __HAL_SAI_ENABLE( &hsai_BlockA1);
     __HAL_SAI_ENABLE( &hsai_BlockB1);
